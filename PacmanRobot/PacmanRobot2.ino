@@ -140,8 +140,7 @@ typedef struct {
 //Detect positions they can move in at intersections, and when to Stop.
 typedef enum {LEFT,CENTRE,RIGHT,NONE} line_pos_t;
 
-class LineSensor 
-{
+class LineSensor {
 public:
     LineSensor(uint8_t pin1,uint8_t pin2,uint8_t pin3, uint8_t pin4);
     line_pos_t get_line();
@@ -295,18 +294,18 @@ typedef enum {PACMAN=0, GHOST1, GHOST2, GHOST3} playerType_t;
  * TODO Explanations for each variable
  */
 
-volatile int moveFlag = 0;
-playerType_t playerSelect;
-robot_t *thisRobot;
-position_t goal;
-heading_t globalHeading;
+volatile int       moveFlag = 0;
+playerType_t       playerSelect;
+robot_t            *thisRobot;
+position_t         goal;
+heading_t          globalHeading;
 volatile heading_t currentHeading;
-unsigned long aiTime = 0;
-unsigned long loopTime = 0;
-unsigned long lastIntersection = 0;
-bool animationToggle = 0;
-bool readingRadio = 0;
-bool radio_flag = 0;
+unsigned long      aiTime = 0;
+unsigned long      loopTime = 0;
+unsigned long      lastIntersection = 0;
+bool               animationToggle = 0;
+bool               readingRadio = 0;
+bool               radio_flag = 0;
 
 game_state_t game;
 // Extra space to prevent corruption of data, due to the required 32 byte payload.
@@ -321,7 +320,7 @@ uint8_t __space[21];
 #endif
 
 // Updated by MANUAL_OVERRIDE
-uint8_t player_direction = 0;
+uint8_t       player_direction = 0;
 unsigned long manual_override_timer = 0;
 unsigned long lastRadioUpdateTime = 0;
 
@@ -503,14 +502,14 @@ void init_radio() {
   radio.setPayloadSize(32);
   attachInterrupt(3, check_radio, FALLING);
 }
+
 void check_radio() {
    Serial.println("check_radio...");
    radio_flag = 1; // global var
    Serial.println("check_radio - done");
-
 }
 
-void calibrate_light_sensors(){
+void calibrate_light_sensors() {
   lineTop.calibrate();
   lineRight.calibrate();
   lineBottom.calibrate();
@@ -526,37 +525,37 @@ void debug_colour() {
 }
 
 void player_LEDs(){
-  switch(playerSelect){
+  switch (playerSelect) {
     case PACMAN :
-      rgb[0] = 220;
-      rgb[1] = 220;
+      rgb[0] = 255;
+      rgb[1] = 255;
       rgb[2] = 0;
       break;
     case GHOST1 : // Blinky (RED)
-      rgb[0] = 200;
+      rgb[0] = 255;
       rgb[1] = 0;
       rgb[2] = 0;
       break;
     case GHOST2 : // Inky (BLUE) TODO More of a Cyan Color?
-      rgb[0] = 0;
-      rgb[1] = 0;
-      rgb[2] = 200;
+      rgb[0] = 2;
+      rgb[1] = 2;
+      rgb[2] = 225;
       break;
-    case GHOST3 : // TODO What color is it?
-      rgb[0] = 150;
-      rgb[1] = 60;
-      rgb[2] = 60;
+    case GHOST3 : // TODO What color is it? EDIT: Pinky or Clyde
+      rgb[0] = 255;
+      rgb[1] = 184;
+      rgb[2] = 255;
       break;
     default :
       return;
       break;
   }
+
   int i;
-  for(i=0;i<NUMPIXELS;i++){
+  for (i = 0; i < NUMPIXELS; i++) {
      pixels.setPixelColor(i, pixels.Color(rgb[0],rgb[1],rgb[2]));
   }
   pixels.show();
-  
 }
   
 // TODO NOT USED? REMOVE?
@@ -568,8 +567,6 @@ void init_game() {
     default     : thisRobot = &game.g[playerSelect-1]; break;
   }
 }
-
-
 
 /*  
  * 
@@ -1016,6 +1013,7 @@ uint8_t detect_intersection() {
   }
 }
 
+// TODO: Add explanation
 bool alignIntersection() {
   Serial.println("alignIntersection...");
   if(globalHeading=='0'){
@@ -1079,6 +1077,7 @@ bool alignIntersection() {
 }  
   
 
+// TODO: Add explanation
 void line_follow(){
   Serial.println("line_follow...");
   // use of pointers helps translate robot movement functions based on direction
@@ -1138,6 +1137,7 @@ void line_follow(){
 
 }
 
+// TODO: Add explanation
 void get_line_alignment(LineSensor **l_F,LineSensor **l_B){
       Serial.println("get_line_alignment...");
     switch(globalHeading){
@@ -1166,6 +1166,7 @@ void get_line_alignment(LineSensor **l_F,LineSensor **l_B){
 
 }
 
+// TODO: Add explanation
 void get_motor_alignment(AccelStepper **m_fL,AccelStepper **m_fR,AccelStepper **m_bL,AccelStepper **m_bR){
   // global heading must have motor direction first
         Serial.println("get_motor_alignment...");
