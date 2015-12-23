@@ -8,8 +8,6 @@
    For now, don't move around things.
 */
 
-
-  
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -22,6 +20,7 @@
 #include "RF24.h"
 #include <Adafruit_NeoPixel.h>
 #include <avr/power.h>
+
 #include "LineSensor.h"
 #include "Game.h"
 #include "Map.h"
@@ -108,7 +107,7 @@ typedef enum {PACMAN=0, GHOST1, GHOST2, GHOST3} playerType_t;
  * Global Variables
  * TODO Explanations for each variable
  ***************************************************************************/
-volatile int       moveFlag = 0;
+volatile int       moveFlag = 0; //TODO Check why it is being used
 playerType_t       currPlayer;
 robot_t            *thisRobot;
 position_t         goal;
@@ -159,24 +158,23 @@ void InitHeading(void); //Used in both Setup and Loop
 /*
  * Loop Functions: 
  */
-
-void GhostAnimation(void); //Ghost Animations, Eyes direction
-void PacmanAnimation(void); 
-//Radio
+void GhostAnimation(void); //Ghost Animations, Eyes direction. Used in Loop
+void PacmanAnimation(void); // Used in loop
+// Radio
 void UpdateGame(void); //Uses radio
 void SetChecksum(void); //Used by UpdateGame, sets checksum of game variable locally
 uint8_t GetChecksum(game_state_t *g); //Gets Checksum of a game_state_t
-//Movement
+// Movement
 void MoveRobot(void);
 void MoveFlag(void); //TODO Not used?
-void UpdateSpeed(AccelStepper *thisMotor,int newSpeed);
+void UpdateSpeed(AccelStepper *thisMotor,int newSpeed); // Used to update motor's speed.
 void GetMotorAlignment(AccelStepper **m_fL,AccelStepper **m_fR,AccelStepper **m_bL,AccelStepper **m_bR);
 void GetLineAlignment(LineSensor **l_F,LineSensor **l_B);
 void LineFollow(void);
 bool AlignToIntersection(void);
 uint8_t DetectIntersection(void);
 void DecideDirection(uint8_t options);
-//Map Navigation
+// Map Navigation
 void SetGoal(void); //TODO Not used? For AI later?
 uint8_t ExpandMap(void);
 bool IsIntersection(int x, int y);
@@ -196,8 +194,7 @@ char BinaryToHeading(uint8_t h);
 void PrintGame(void);
 void DebugColor(); 
 void enter_robot_location(robot_t * entry);
-//TODO Not Used?
-void init_game(void); 
+void init_game(void); //TODO Not Used?
 void init_game_map(void); 
 
 
@@ -624,7 +621,8 @@ void PacmanAnimation(){
 }
               
 //TODO Ghost Color Animations? Also Manages Eyes direction
-void GhostAnimation(){
+//TODO Headings purpose
+void GhostAnimation() {
   heading_t ledHeading = globalHeading;
   if(ledHeading == 'u' || ledHeading == 'd') {
       if(animationToggle==0){
@@ -779,13 +777,13 @@ void MoveRobot() {
     Serial.println("MoveRobot - done");
 }
 
-//TODO Purpose
+// Checks the current speed of the motor via thisMotor object
+// Sets the speed of motor to supplied parameter newSpeed.
 void UpdateSpeed(AccelStepper *thisMotor,int newSpeed){
     Serial.println("update_speed...");
     int speedVal = (int)thisMotor->speed();
     if(speedVal!=newSpeed){
       thisMotor->setSpeed(newSpeed);
-
     }
     Serial.println("update_speed - done");
 }
@@ -794,6 +792,8 @@ void UpdateSpeed(AccelStepper *thisMotor,int newSpeed){
 void GetMotorAlignment(AccelStepper **m_fL,AccelStepper **m_fR,AccelStepper **m_bL,AccelStepper **m_bR){
     // global heading must have motor direction first
     Serial.println("GetMotorAlignment...");
+    //TODO: Why is this split into cases? All cases result in the same code
+    // being executed.
     switch(globalHeading){
         case 'u' :
             *m_fL = &m_topLeft;
@@ -861,10 +861,10 @@ void GetLineAlignment(LineSensor **l_F,LineSensor **l_B){
 void LineFollow(){
     Serial.println("LineFollow...");
     // use of pointers helps translate robot movement functions based on direction
-    AccelStepper *m_frontLeft;
-    AccelStepper *m_frontRight;
-    AccelStepper *m_backLeft;
-    AccelStepper *m_backRight;
+    AccelStepper *m_frontLeft; // Front left motor
+    AccelStepper *m_frontRight; // Front right motor
+    AccelStepper *m_backLeft; // Back left motor
+    AccelStepper *m_backRight; // Back right motor
     LineSensor *lineFront;
     LineSensor *lineBack;
 
@@ -985,39 +985,44 @@ bool AlignToIntersection() {
 uint8_t DetectIntersection() {
   // returning true when robot has just reached an intersection
   // (TODO to be completed)
-  if((millis()-lastIntersection)<2000&&globalHeading!='0'){
+  // If the last intersection was less than 2000 ms ago, it is not an intersection.
+  if (((millis() - lastIntersection) < 2000) && (globalHeading != '0')) {
     return 0;
   }
+
   line_pos_t readTop = lineTop.get_line();
   line_pos_t readRight = lineRight.get_line();
   line_pos_t readBottom = lineBottom.get_line();
   line_pos_t readLeft = lineLeft.get_line();
-  uint8_t trip = (readTop!=NONE)+(readRight!=NONE)+(readBottom!=NONE)+(readLeft!=NONE);
-  if (trip<2) {
+  uint8_t trip = (readTop!=NONE) + (readRight!=NONE) + (readBottom!=NONE) + (readLeft!=NONE);
+  
+  if (trip < 2) {
     return 0;
-  } else if(trip>2) {
+  } else if(trip > 2) {
     // red
     //red = 50; green = 0; blue = 0;
     //DebugColor();
     unsigned long time = millis();
-    while(!AlignToIntersection() && (millis() - time < MAX_ALIGN_TIME)){}
-  } else if(readTop != NONE && readBottom != NONE) {
+    while (!AlignToIntersection() && (millis() - time < MAX_ALIGN_TIME)) { }
+  } else if (readTop != NONE && readBottom != NONE) {
     return 0;
-  } else if(readLeft != NONE && readRight != NONE) {
+  } else if (readLeft != NONE && readRight != NONE) {
     return 0;
   } else {
     unsigned long time = millis();
-    while(!AlignToIntersection() && (millis() - time < MAX_ALIGN_TIME)){}
-  }  
+    while (!AlignToIntersection() && (millis() - time < MAX_ALIGN_TIME)) { }
+  }
+
   uint8_t options = 0;
   readTop = lineTop.get_line();
   readRight = lineRight.get_line();
   readBottom = lineBottom.get_line();
   readLeft = lineLeft.get_line();
   trip = (readTop!=NONE)+(readRight!=NONE)+(readBottom!=NONE)+(readLeft!=NONE);
-  if (trip<2) {
+  
+  if (trip < 2) {
     return 0;
-  } else if(trip>2) {
+  } else if(trip > 2) {
     //red = 50; green = 0; blue = 0;
     //DebugColor();
     if(readTop!=NONE){
@@ -1034,38 +1039,39 @@ uint8_t DetectIntersection() {
     }
     lastIntersection = millis();
     return options;
-  } else if(readTop!=NONE&&readBottom!=NONE){
+  } else if ((readTop != NONE) && (readBottom != NONE)) {
     return 0;
-  } else if(readLeft!=NONE&&readRight!=NONE){
+  } else if ((readLeft != NONE) && (readRight != NONE)) {
     return 0;
   } else {
-    if(currPlayer==PACMAN){
+    if(currPlayer == PACMAN){
       // treat as intersection
-      if(readTop!=NONE){
+      if(readTop != NONE){
         options|=U;
       }
-      if(readRight!=NONE){
+      if(readRight != NONE){
         options|=R;
       }
-      if(readBottom!=NONE){
+      if(readBottom != NONE){
         options|=D;
       }
-      if(readLeft!=NONE){
+      if(readLeft != NONE){
         options|=L;
       }
       lastIntersection = millis();
       return options;
     } else {
       // do not treat as intersection
-      if(readTop!=NONE&&globalHeading!='d'){
+      if((readTop != NONE) && (globalHeading != 'd')) {
         globalHeading='u';
-      } else if(readRight!=NONE&&globalHeading!='l'){
+      } else if((readRight != NONE) && (globalHeading != 'l')) {
         globalHeading='r';
-      } else if(readBottom!=NONE&&globalHeading!='u'){
+      } else if((readBottom != NONE) && (globalHeading != 'u')) {
         globalHeading='d';
-      } else if(readLeft!=NONE&&globalHeading!='r'){
+      } else if((readLeft != NONE) && (globalHeading != 'r')) {
         globalHeading='l';
       }
+      
       lastIntersection = millis();
       return 0;
     }

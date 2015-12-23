@@ -38,6 +38,7 @@ typedef struct {
     uint8_t y : 4;
 } position_t;
 
+// global variable: holds the direction of the motor.
 typedef char heading_t;
 
 typedef struct {
