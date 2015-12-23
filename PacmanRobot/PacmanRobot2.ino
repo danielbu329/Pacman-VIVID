@@ -1,14 +1,14 @@
-#define DEBUG_RF  0 // Debug messages related to updating the game state + internals from RF
-#define PRINT_DECISION // Debug messages used during decide direction
+/* 
+  Create UNSW Pacman
+  note: data types and variables have been grouped together for ease of reading.
+   This leads to inefficient allocation of memory space, but for now we have plenty.
+   Once program is working, suggest moving relevant sections into different .h and .c
+   files, as well as converting as much code as possible to c++ rather than c.
+   
+   For now, don't move around things.
+*/
 
-//TODO What are these? To store a color? Place in GLobal Variable list?
-uint8_t red = 0;
-uint8_t blue = 0;
-uint8_t green = 0;
 
-
-#define USE_RADIO
-//#define MATLAB  //TODO When uncomment
   
 #include <stdint.h>
 #include <stdbool.h>
@@ -26,26 +26,30 @@ uint8_t green = 0;
 #include "Game.h"
 #include "Map.h"
 
-/* note: data types and variables have been grouped together for ease of reading.
-   This leads to inefficient allocation of memory space, but for now we have plenty.
-   Once program is working, suggest moving relevant sections into different .h and .c
-   files, as well as converting as much code as possible to c++ rather than c.
-   
-   For now, don't move around things.
-*/
+#define USE_RADIO 1
+//#define MATLAB  
+#define DEBUG_RF  0 // Debug messages related to updating the game state + internals from RF
+#define PRINT_DECISION // Debug messages used during decide direction
 
-/*
+//TODO What are these? To store a color? Place in GLobal Variable list?
+uint8_t red = 0;
+uint8_t blue = 0;
+uint8_t green = 0;
+
+
+
+/***************************************************************************
  * Radio definitions
- */
-
+ ***************************************************************************/
 #define BROADCAST_CHANNEL 72
 static const uint64_t pipe = 0xF0F0F0F0E1LL;
 
-/*
+
+
+/***************************************************************************
  *    Hardware definitions 
  *    Robot Colors, Motors, LineSensors, Radio (TODO WiFi)
- */
-
+ ***************************************************************************/
  //TODO Understanding:
  // LED_STRIP_PIN(43) is the pin for the STRIP of all 20 Neo Pixels on the Robot
  // Each is then numbered into pacStrip, based on how they are placed.
@@ -87,22 +91,23 @@ RF24 radio(49,53);
 // TODO to be inserted: button(s) (x1 or x2) for mode select
 // TODO Change to WiFi
 
-/*
+
+
+/***************************************************************************
  * Local definitions
- */
+ ***************************************************************************/
 typedef enum {PACMAN=0, GHOST1, GHOST2, GHOST3} playerType_t;
-
-
 #define M_SPEED 225
 #define M_SLOW  150
 #define STEPPER_MAX_SPEED 1000
 #define MAX_ALIGN_TIME 1000
 
-/*
+
+
+/***************************************************************************
  * Global Variables
  * TODO Explanations for each variable
- */
-
+ ***************************************************************************/
 volatile int       moveFlag = 0;
 playerType_t       currPlayer;
 robot_t            *thisRobot;
@@ -135,9 +140,9 @@ unsigned long lastRadioUpdateTime = 0;
 
 
 
-/*
+/***************************************************************************
  * Functions Definitions
- */
+ ***************************************************************************/
 
 /*
  * Setup Functions: 
@@ -197,11 +202,11 @@ void init_game_map(void);
 
 
 
-/*
+/***************************************************************************
  *
  * SETUP FUNCTIONS 
  *
- */
+ ***************************************************************************/
 
 /*
  * SETUP FUNCTION FOR ARDUINO
@@ -216,9 +221,9 @@ void setup() {
     InitMotors();
     InitLightSensors();
     randomSeed(micros()); // Initialised Psuedo Random Number Generator
-    #ifdef USE_RADIO
+    if (USE_RADIO) {
       InitRadio();
-    #endif
+    }
 
     // purple         TODO ?
     red = 50; green = 0; blue = 50;
@@ -270,14 +275,14 @@ void setup() {
     while (!digitalRead(45));
     InitHeading();
     
-    #ifdef USE_RADIO
+    if (USE_RADIO) {
         // Init pacman waiting for input, will time-out after 10 seconds
         if (currPlayer == PACMAN) {
             curr_command = MANUAL_OVERRIDE;
             manual_override_timer = millis();
             globalHeading = '0';  
         }
-    #endif
+    }
     SetCurrPlayerLeds(); 
     game.command = 0;
 }
@@ -391,11 +396,11 @@ void init_game() {
 
 
 
-/*  
+/***************************************************************************  
  * 
  * MAIN FUNCTIONS 
  *
- */
+ ***************************************************************************/
 
 // A simple count to "hold" a person's input
 // NOTE: This simply prevents the return from manual control to AI driven for a period of time, the
@@ -418,7 +423,7 @@ void loop() {
     //    delay(50);
     //    setup();
     //  }
-    #ifdef USE_RADIO
+    if (USE_RADIO) {
         //Serial.println(millis() - manual_override_timer);  
         if (radio_flag) {
             UpdateGame();
@@ -555,7 +560,7 @@ void loop() {
           default              : /*PAUSE, STOP, START*/ break;
         }
     
-    #else  
+    } else { 
         //    // Non-map based motor control goes here
         //    //red = 0; green = 0; blue = 0;
         //    //DebugColor();
@@ -570,7 +575,7 @@ void loop() {
         //      moveFlag = 0;
         //      MoveRobot();
         //    }*/
-    #endif
+    }
   
     if(millis()-loopTime>500){
         if (currPlayer != PACMAN) {
@@ -650,11 +655,11 @@ void GhostAnimation(){
 
 
 
-/*
+/***************************************************************************
  *
  * RADIO NETWORK FUNCTIONS 
  *
- */
+ ***************************************************************************/
  //TODO Purpose
 void UpdateGame() {
     int i;
@@ -715,11 +720,11 @@ void SetChecksum() {
 
 
 
-/*
+/***************************************************************************
  *
  * MOVEMENT FUNCTIONS 
  *
- */
+ ***************************************************************************/
 //Used in Setup and Loop. TODO Purpose
 void InitHeading(){
     Serial.println("InitHeading...");
@@ -1099,29 +1104,29 @@ void DecideDirection(uint8_t options){
     //Serial.println(options,BIN);
     goal.x = 0;
     goal.y = 0;
-    #ifdef USE_RADIO
-    if (curr_command == MANUAL_OVERRIDE) {
-      if ((player_direction & options) > 0) {
-        Serial.print("player's direction available :");
-        // If the override direction is available, set that heading
-        globalHeading = BinaryToHeading(player_direction);
-        Serial.println((char)globalHeading);
-        player_direction  = 0;
-      } else if ((HeadingToBinary(globalHeading) & options)>0) {
-        Serial.println("player's direction not available, but global is");
-        // If the current direction is available, maintain
-        globalHeading = globalHeading; // lol
-      } else {
-        Serial.println("player nor global available");
-        globalHeading = '0';
-        player_direction = 0;
-      }
-        Serial.println("DecideDirection - done");
+    if (USE_RADIO) {
+        if (curr_command == MANUAL_OVERRIDE) {
+          if ((player_direction & options) > 0) {
+            Serial.print("player's direction available :");
+            // If the override direction is available, set that heading
+            globalHeading = BinaryToHeading(player_direction);
+            Serial.println((char)globalHeading);
+            player_direction  = 0;
+          } else if ((HeadingToBinary(globalHeading) & options)>0) {
+            Serial.println("player's direction not available, but global is");
+            // If the current direction is available, maintain
+            globalHeading = globalHeading; // lol
+          } else {
+            Serial.println("player nor global available");
+            globalHeading = '0';
+            player_direction = 0;
+          }
+            Serial.println("DecideDirection - done");
 
-      return;
+          return;
+        }
+        // This else is to
     }
-    // This else is to
-    #endif
     if (goal.x == 0 && goal.y == 0) { //random movement mode
         char randPriority[5] = "udlr";
         uint8_t tempDir;
@@ -1228,11 +1233,11 @@ void MoveFlag(){
 
 
 
-/*
+/***************************************************************************
  *
  * MAP NAVIGATION FUNCTIONS 
  *
- */
+ ***************************************************************************/
 //TODO Purpose
 void SetGoal(){
     switch(currPlayer){
