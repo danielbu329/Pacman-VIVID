@@ -24,6 +24,7 @@ void debug_colour();
 #include <Adafruit_NeoPixel.h>
 #include <avr/power.h>
 #include "LineSensor.h"
+#include "Game.h"
 
 /* note: data types and variables have been grouped together for ease of reading.
    This leads to inefficient allocation of memory space, but for now we have plenty.
@@ -32,33 +33,6 @@ void debug_colour();
    
    For now, don't move around things.
 */
-
-
-
-/*
- * Game state definitions
- */ 
- 
-#define NUM_GHOSTS 3
-// Header
-#define HEADER 0xC8
-
-// Game commands
-#define NOP             B0000000
-#define START           B0000001
-#define STOP            B0000010
-#define HIDE            B0000100
-#define PAUSE           B0001000
-#define RESUME          B0010000 
-#define MUSIC_COMMAND   B0100000
-#define MANUAL_OVERRIDE B1000000
-
-#define GAME_SIZE sizeof(game_state_t)
-
-// Pacman death sequence code, must NOT conflict with music mask of broadcaster
-#define PAC_DEATH 0b10000000
-
-
 
 /*
  * Map definitions
@@ -100,35 +74,6 @@ static const uint8_t yy = 0b1010;
 
 #define BROADCAST_CHANNEL 72
 static const uint64_t pipe = 0xF0F0F0F0E1LL;
-
-
-/*
- * 
- *   Game Struct definitions
- *   Information on current positions of pacman and robots, header (hash), stores a command
- */
-
-typedef struct {
-    uint8_t x : 4;
-    uint8_t y : 4;
-} position_t;
-
-typedef char heading_t;
-
-typedef struct {
-    position_t p;
-    heading_t h;
-} robot_t;
-
-// Contains information about all robots currently in play.
-typedef struct {
-    uint8_t header; //Holds a checksum
-    uint8_t command;
-    uint8_t override_dir;	
-    robot_t pac;
-    robot_t g[NUM_GHOSTS];
-} game_state_t;
-
 
 /*
  *
@@ -209,8 +154,8 @@ unsigned long      lastIntersection = 0;
 bool               animationToggle = 0;
 bool               readingRadio = 0;
 bool               radio_flag = 0;
+game_state_t       game;
 
-game_state_t game;
 // Extra space to prevent corruption of data, due to the required 32 byte payload.
 uint8_t __space[21];
 
